@@ -49,7 +49,7 @@ export const verifySecurityScenario = async (scenario: SecurityScenario, isMock:
   const summary = summarizeLogs(scenario.requests);
 
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-flash',
     contents: `Analyze behavior: ${JSON.stringify(summary)}. Intent: ${scenario.intent}`,
     config: {
       responseMimeType: "application/json",
@@ -76,7 +76,7 @@ export const verifySecurityScenario = async (scenario: SecurityScenario, isMock:
 
 export const extractClaims = async (text: string): Promise<FactualClaim[]> => {
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-flash',
     contents: `Extract factual claims. JSON only. TEXT: ${text}`,
     config: {
       responseMimeType: "application/json",
@@ -107,7 +107,7 @@ export const extractClaims = async (text: string): Promise<FactualClaim[]> => {
 
 export const verifyClaim = async (claim: FactualClaim): Promise<VerificationResult> => {
   const searchResponse = await ai.models.generateContent({
-    model: 'gemini-1.5-pro',
+    model: 'gemini-3-pro',
     contents: `Verify: "${claim.text}"`,
     config: {
       tools: [{ googleSearch: {} }],
@@ -167,7 +167,7 @@ export const verifyClaim = async (claim: FactualClaim): Promise<VerificationResu
 
 export const checkConsistency = async (claims: FactualClaim[], results: VerificationResult[]): Promise<any[]> => {
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-flash',
     contents: `Check contradictions: ${JSON.stringify(claims.map(c => ({ id: c.id, verdict: results.find(r => r.claimId === c.id)?.verdict })))}`,
     config: { responseMimeType: "application/json" }
   });
@@ -177,7 +177,7 @@ export const checkConsistency = async (claims: FactualClaim[], results: Verifica
 // Fix: Imported RiskAnalysis to satisfy TypeScript type checking for the signature and return value
 export const generateRiskAnalysis = async (persona: DocumentPersona, verdicts: Record<Verdict, number>, avgConfidence: number): Promise<RiskAnalysis> => {
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-flash',
     contents: `Risk profile for ${persona}. Stats: ${JSON.stringify(verdicts)}. Confidence: ${avgConfidence}%`,
     config: { responseMimeType: "application/json" }
   });

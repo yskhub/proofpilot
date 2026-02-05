@@ -1,7 +1,7 @@
 
 import { VerificationResult, Verdict } from "../types";
 
-const MAX_AI_CALLS_PER_SESSION = 15;
+const MAX_AI_CALLS_PER_SESSION = 50; // Increased for testing
 let sessionAiCount = 0;
 
 export interface PriorityMetrics {

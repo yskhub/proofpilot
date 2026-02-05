@@ -1,0 +1,12 @@
+# Render Blueprint: ProofPilot Static Site
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: proofpilot
+    runtime: static
+    # Render skips devDependencies when NODE_ENV=production; --include=dev fixes that
+    buildCommand: npm install --include=dev && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false

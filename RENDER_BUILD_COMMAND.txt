@@ -1,0 +1,21 @@
+============================================
+RENDER DASHBOARD - SET THIS BUILD COMMAND
+============================================
+
+Go to: https://dashboard.render.com
+→ Your service "proofpilot"
+→ Settings
+→ Build & Deploy
+→ Build Command
+
+Set it to EXACTLY:
+
+  npm install --include=dev && npm run build
+
+Then Save. Redeploy.
+
+============================================
+Why: Render uses NODE_ENV=production, so npm install
+skips devDependencies. --include=dev fixes that so
+Vite, TypeScript, and @vitejs/plugin-react get installed.
+============================================

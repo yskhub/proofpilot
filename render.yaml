@@ -7,6 +7,10 @@ services:
     # Render skips devDependencies when NODE_ENV=production; --include=dev fixes that
     buildCommand: npm install --include=dev && npm run build
     staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: GEMINI_API_KEY
         sync: false

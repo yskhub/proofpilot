@@ -1,0 +1,5 @@
+{
+  "name": "ProofPilot",
+  "description": "Verify claims inside documents using Gemini 3. It extracts atomic factual claims, verifies them against trusted sources, and provides clear verdicts with confidence scores.",
+  "requestFramePermissions": []
+}

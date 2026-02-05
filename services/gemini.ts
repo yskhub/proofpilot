@@ -20,13 +20,13 @@ const summarizeLogs = (requests: any[]) => {
   const endpoints = new Set(requests.map(r => r.endpoint));
   const authFailures = requests.filter(r => r.status_code === 401 || r.status_code === 403).length;
   const tokenReuse = new Set(requests.map(r => r.headers?.Authorization)).size < requests.filter(r => r.headers?.Authorization).length;
-  
+
   return {
     request_count: requests.length,
     unique_endpoints: endpoints.size,
     auth_failures: authFailures,
     token_reuse: tokenReuse,
-    time_span_sec: requests.length > 1 ? (new Date(requests[requests.length-1].timestamp).getTime() - new Date(requests[0].timestamp).getTime()) / 1000 : 0,
+    time_span_sec: requests.length > 1 ? (new Date(requests[requests.length - 1].timestamp).getTime() - new Date(requests[0].timestamp).getTime()) / 1000 : 0,
     ua_entropy: new Set(requests.map(r => r.headers?.['User-Agent'])).size
   };
 };
@@ -49,7 +49,7 @@ export const verifySecurityScenario = async (scenario: SecurityScenario, isMock:
   const summary = summarizeLogs(scenario.requests);
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-1.5-flash',
     contents: `Analyze behavior: ${JSON.stringify(summary)}. Intent: ${scenario.intent}`,
     config: {
       responseMimeType: "application/json",
@@ -60,7 +60,7 @@ export const verifySecurityScenario = async (scenario: SecurityScenario, isMock:
   const data = JSON.parse(response.text || '{}');
   const claimId = 'sim-0';
   const claim: FactualClaim = { id: claimId, text: scenario.intent, category: 'Forensic Audit' };
-  
+
   const result: VerificationResult = {
     claimId,
     verdict: (data.verdict === 'Malicious' ? Verdict.FALSE : data.verdict === 'Suspicious' ? Verdict.LIKELY_TRUE : Verdict.TRUE) as Verdict,
@@ -76,7 +76,7 @@ export const verifySecurityScenario = async (scenario: SecurityScenario, isMock:
 
 export const extractClaims = async (text: string): Promise<FactualClaim[]> => {
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-1.5-flash',
     contents: `Extract factual claims. JSON only. TEXT: ${text}`,
     config: {
       responseMimeType: "application/json",
@@ -107,7 +107,7 @@ export const extractClaims = async (text: string): Promise<FactualClaim[]> => {
 
 export const verifyClaim = async (claim: FactualClaim): Promise<VerificationResult> => {
   const searchResponse = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-1.5-pro',
     contents: `Verify: "${claim.text}"`,
     config: {
       tools: [{ googleSearch: {} }],
@@ -128,8 +128,8 @@ export const verifyClaim = async (claim: FactualClaim): Promise<VerificationResu
       };
     });
 
-  const avgCredibility = sources.length > 0 
-    ? sources.reduce((acc, s) => acc + s.credibilityScore, 0) / sources.length 
+  const avgCredibility = sources.length > 0
+    ? sources.reduce((acc, s) => acc + s.credibilityScore, 0) / sources.length
     : 0.5;
 
   const structuredResponse = await ai.models.generateContent({
@@ -167,7 +167,7 @@ export const verifyClaim = async (claim: FactualClaim): Promise<VerificationResu
 
 export const checkConsistency = async (claims: FactualClaim[], results: VerificationResult[]): Promise<any[]> => {
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-1.5-flash',
     contents: `Check contradictions: ${JSON.stringify(claims.map(c => ({ id: c.id, verdict: results.find(r => r.claimId === c.id)?.verdict })))}`,
     config: { responseMimeType: "application/json" }
   });
@@ -177,7 +177,7 @@ export const checkConsistency = async (claims: FactualClaim[], results: Verifica
 // Fix: Imported RiskAnalysis to satisfy TypeScript type checking for the signature and return value
 export const generateRiskAnalysis = async (persona: DocumentPersona, verdicts: Record<Verdict, number>, avgConfidence: number): Promise<RiskAnalysis> => {
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-1.5-flash',
     contents: `Risk profile for ${persona}. Stats: ${JSON.stringify(verdicts)}. Confidence: ${avgConfidence}%`,
     config: { responseMimeType: "application/json" }
   });

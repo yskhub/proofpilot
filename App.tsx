@@ -117,8 +117,36 @@ const App: React.FC = () => {
   };
 
   const handleStartAnalysis = async () => {
-    if (!inputText.trim()) return;
-    const currentSignature = generateRequestSignature(inputText);
+    const trimmedText = inputText.trim();
+    
+    // Input validation
+    if (!trimmedText) {
+      setState(prev => ({ ...prev, status: 'error', error: 'Please enter text to analyze.' }));
+      return;
+    }
+    
+    const MAX_INPUT_LENGTH = 15000; // ~3000 words
+    if (trimmedText.length > MAX_INPUT_LENGTH) {
+      setState(prev => ({ 
+        ...prev, 
+        status: 'error', 
+        error: `Text too long (${trimmedText.length} characters). Maximum ${MAX_INPUT_LENGTH} characters (~3000 words) allowed to prevent API quota issues.` 
+      }));
+      return;
+    }
+
+    const MIN_INPUT_LENGTH = 20;
+    if (trimmedText.length < MIN_INPUT_LENGTH) {
+      setState(prev => ({ 
+        ...prev, 
+        status: 'error', 
+        error: 'Text too short. Please provide at least a few sentences for meaningful analysis.' 
+      }));
+      return;
+    }
+    
+    // Replay detection
+    const currentSignature = generateRequestSignature(trimmedText);
     const now = Date.now();
     const existingEntry = submissionHistory.current.find(s => s.signature === currentSignature && (now - s.timestamp) < 300000);
 
@@ -130,12 +158,46 @@ const App: React.FC = () => {
 
     submissionHistory.current.push({ signature: currentSignature, timestamp: now });
     setState({ status: 'extracting', claims: [], results: {}, mode: 'document' });
+    
     try {
-      const extractedClaims = await extractClaims(inputText);
+      const extractedClaims = await extractClaims(trimmedText);
+      
+      if (extractedClaims.length === 0) {
+        setState(prev => ({ 
+          ...prev, 
+          status: 'error', 
+          error: 'No verifiable claims found in the text. Try adding more specific factual statements.' 
+        }));
+        return;
+      }
+      
       setState(prev => ({ ...prev, status: 'verifying', claims: extractedClaims }));
       await processAnalysis(extractedClaims);
     } catch (error: any) {
-      setState(prev => ({ ...prev, status: 'error', error: error.message }));
+      console.error('[ProofPilot] Analysis error:', error);
+      
+      // Categorize errors for user-friendly messages
+      let userMessage = 'An unexpected error occurred during analysis. Please try again.';
+      let technicalDetails = error.message || 'Unknown error';
+      
+      if (error.message?.toLowerCase().includes('api') && error.message?.toLowerCase().includes('key')) {
+        userMessage = '🔑 API Configuration Error: The Gemini API key is not properly configured. Please contact support.';
+      } else if (error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('limit')) {
+        userMessage = '📊 API Quota Exceeded: The daily API usage limit has been reached. Please try again tomorrow or upgrade your plan.';
+      } else if (error.message?.toLowerCase().includes('network') || error.message?.toLowerCase().includes('fetch') || error.message?.toLowerCase().includes('timeout')) {
+        userMessage = '🌐 Network Error: Unable to connect to the verification service. Please check your internet connection and try again.';
+      } else if (error.message?.toLowerCase().includes('permission') || error.message?.toLowerCase().includes('forbidden') || error.message?.toLowerCase().includes('401') || error.message?.toLowerCase().includes('403')) {
+        userMessage = '🚫 Authorization Error: Access denied to the verification service. Please verify your API credentials.';
+      } else if (error.message?.toLowerCase().includes('rate')) {
+        userMessage = '⏱️ Rate Limit: Too many requests. Please wait a moment before trying again.';
+      } else if (error.message?.toLowerCase().includes('parse') || error.message?.toLowerCase().includes('json')) {
+        userMessage = '⚠️ Processing Error: Unable to parse the AI response. The service may be experiencing issues. Please try again.';
+      }
+      
+      // Include technical details in console for debugging
+      console.error('[ProofPilot] Technical details:', technicalDetails);
+      
+      setState(prev => ({ ...prev, status: 'error', error: userMessage }));
     }
   };
 
